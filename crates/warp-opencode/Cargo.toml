@@ -1,0 +1,30 @@
+[package]
+name = "warp-opencode"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+warpui.workspace = true
+warpui_core.workspace = true
+
+anyhow.workspace = true
+base64.workspace = true
+bytes.workspace = true
+eventsource-client.workspace = true
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+# Keep this crate as the license boundary. Do not add Warp app, warp_terminal,
+# ui_components, markdown_parser, warp_util, or other AGPL Warp crates here.
+
+[dev-dependencies]
+wiremock = "0.6"
