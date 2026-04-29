@@ -223,7 +223,7 @@ pub struct QuestionReply {
     pub answers: Vec<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderListResult {
     pub all: Vec<ProviderInfo>,

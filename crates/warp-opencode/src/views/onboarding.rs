@@ -1,9 +1,13 @@
+use crate::api::schema::{
+    PermissionRequest, ProviderListResult, QuestionRequest, Session, SessionId, SessionStatus,
+};
 use crate::api::{ApiClient, ApiConfig, ApiError, Auth};
 use crate::config::Config;
 use crate::sse_loop::SseLoop;
 use crate::state::{AppStore, ConnectionStatus};
 use crate::views::draft_buffer::DraftBuffer;
 use crate::views::root::RootView;
+use std::collections::HashMap;
 use warpui::color::ColorU;
 use warpui::elements::{
     Border, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
@@ -440,11 +444,23 @@ async fn bootstrap(client: ApiClient, store: AppStore) -> Result<(), ApiError> {
     store.set_connection(ConnectionStatus::Connecting).await;
     let result = async {
         client.health().await?;
-        let sessions = client.list_sessions().await?;
-        let statuses = client.session_status().await.unwrap_or_default();
-        let permissions = client.list_permissions().await.unwrap_or_default();
-        let questions = client.list_questions().await.unwrap_or_default();
-        let providers = client.list_providers().await.ok();
+        let sessions = client.get_or_default::<Vec<Session>>("/session/").await?;
+        let statuses = client
+            .get_or_default::<HashMap<SessionId, SessionStatus>>("/session/status")
+            .await
+            .unwrap_or_default();
+        let permissions = client
+            .get_or_default::<Vec<PermissionRequest>>("/permission/")
+            .await
+            .unwrap_or_default();
+        let questions = client
+            .get_or_default::<Vec<QuestionRequest>>("/question/")
+            .await
+            .unwrap_or_default();
+        let providers = client
+            .get_or_default::<ProviderListResult>("/provider/")
+            .await
+            .ok();
         store
             .replace_bootstrap(sessions, statuses, permissions, questions, providers)
             .await;

@@ -15,7 +15,7 @@ impl ApiClient {
     }
 
     pub async fn list_sessions(&self) -> Result<Vec<Session>, ApiError> {
-        self.get("/session/").await
+        self.get_or_default("/session/").await
     }
 
     pub async fn session_status(&self) -> Result<HashMap<SessionId, SessionStatus>, ApiError> {

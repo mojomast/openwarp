@@ -113,6 +113,14 @@ impl ApiClient {
             .await
     }
 
+    pub async fn get_or_default<T: DeserializeOwned + Default>(
+        &self,
+        path: &str,
+    ) -> Result<T, ApiError> {
+        self.decode_or_default(self.http.get(self.url(path)?).send().await?)
+            .await
+    }
+
     pub async fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, ApiError> {
         self.decode(self.http.delete(self.url(path)?).send().await?)
             .await
@@ -156,8 +164,25 @@ impl ApiClient {
     ) -> Result<T, ApiError> {
         let status = response.status();
         let body = response.text().await?;
+        tracing::debug!(status = %status, body_len = body.len(), "api response");
         if !status.is_success() {
             return Err(ApiError::Status { status, body });
+        }
+        Ok(serde_json::from_str(&body)?)
+    }
+
+    async fn decode_or_default<T: DeserializeOwned + Default>(
+        &self,
+        response: reqwest::Response,
+    ) -> Result<T, ApiError> {
+        let status = response.status();
+        let body = response.text().await?;
+        tracing::debug!(status = %status, body_len = body.len(), "api response");
+        if !status.is_success() {
+            return Err(ApiError::Status { status, body });
+        }
+        if body.trim().is_empty() {
+            return Ok(T::default());
         }
         Ok(serde_json::from_str(&body)?)
     }
