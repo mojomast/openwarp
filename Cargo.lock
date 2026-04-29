@@ -819,6 +819,7 @@ dependencies = [
 [[package]]
 name = "command"
 version = "0.1.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "anyhow",
  "async-process",
@@ -2966,6 +2967,7 @@ dependencies = [
 [[package]]
 name = "markdown_parser"
 version = "0.1.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "anyhow",
  "enum-iterator",
@@ -5153,6 +5155,7 @@ dependencies = [
 [[package]]
 name = "string-offset"
 version = "0.0.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "get-size",
  "num-traits",
@@ -5211,6 +5214,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "sum_tree"
 version = "0.1.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "arrayvec",
  "log",
@@ -6021,6 +6025,7 @@ dependencies = [
 [[package]]
 name = "warp_util"
 version = "0.1.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "content_inspector",
  "dirs",
@@ -6044,6 +6049,7 @@ dependencies = [
 [[package]]
 name = "warpui"
 version = "0.0.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "anyhow",
  "arboard",
@@ -6128,6 +6134,7 @@ dependencies = [
 [[package]]
 name = "warpui_core"
 version = "0.1.0"
+source = "git+https://github.com/warpdotdev/warp?rev=c325d146ab314971e1577f168cf45f03118c3ac5#c325d146ab314971e1577f168cf45f03118c3ac5"
 dependencies = [
  "anyhow",
  "arboard",

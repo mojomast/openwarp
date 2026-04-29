@@ -5,12 +5,15 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-license = "MIT"
+license = "AGPL-3.0-only"
 publish = false
 
 [workspace.dependencies]
-warpui = { path = "Warp/crates/warpui", default-features = false }
-warpui_core = { path = "Warp/crates/warpui_core", default-features = false }
+warpui = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5", default-features = false }
+warpui_core = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5", default-features = false }
+markdown_parser = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
+sum_tree = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
+warp_util = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
 
 anyhow = "1"
 base64 = "0.22"

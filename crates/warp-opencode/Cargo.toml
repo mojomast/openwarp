@@ -23,8 +23,8 @@ tokio-tungstenite.workspace = true
 tracing.workspace = true
 url.workspace = true
 
-# Keep this crate as the license boundary. Do not add Warp app, warp_terminal,
-# ui_components, markdown_parser, warp_util, or other AGPL Warp crates here.
+# OpenWarp is AGPL because upstream warpui/warpui_core directly depend on
+# AGPL-licensed Warp crates. See docs/license-audit.md.
 
 [dev-dependencies]
 wiremock = "0.6"

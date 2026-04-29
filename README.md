@@ -1,6 +1,6 @@
 # OpenWarp
 
-OpenWarp is an experimental native frontend for OpenCode. The goal is to build `warp-opencode`, a standalone Rust binary that uses Warp's GPU-rendered `warpui`/`warpui_core` UI framework and connects to an already-running OpenCode server over HTTP, SSE, and WebSocket APIs.
+OpenWarp is an AGPL-licensed experimental native frontend for OpenCode. The goal is to build `warp-opencode`, a standalone Rust binary that uses Warp's GPU-rendered `warpui`/`warpui_core` UI framework and connects to an already-running OpenCode server over HTTP, SSE, and WebSocket APIs.
 
 OpenWarp is not a fork of Warp or OpenCode. It is a separate client that treats both projects as upstream dependencies and aims to provide a native Warp-style agentic terminal UI for OpenCode sessions.
 
@@ -46,23 +46,18 @@ openwarp/
 │   │   └── views/
 │   └── tests/
 └── docs/
+    ├── license-audit.md
     ├── warpui-audit.md
     ├── opencode-api-contract.md
     ├── ui-state-inventory.md
     └── scaffold-plan.md
 ```
 
-The local `Warp/` checkout is intentionally ignored and not committed. Clone it locally when building until the dependency source is changed to a pinned git revision.
-
 ## Setup
 
-Clone Warp next to this workspace root so the path dependencies resolve:
+Warp dependencies are pinned to `warpdotdev/warp` commit `c325d146ab314971e1577f168cf45f03118c3ac5`; no local Warp checkout is required.
 
-```sh
-git clone https://github.com/warpdotdev/Warp.git Warp
-```
-
-Then build:
+Build:
 
 ```sh
 cargo build -p warp-opencode
@@ -88,20 +83,20 @@ If the server uses `OPENCODE_SERVER_PASSWORD`:
 cargo run -p warp-opencode -- --host localhost --port 4096 --username opencode --password "$OPENCODE_SERVER_PASSWORD"
 ```
 
-## License Boundary
+## License
 
-OpenWarp directly depends only on Warp's MIT-labeled `warpui` and `warpui_core` crates. Do not add Warp `app`, `warp_terminal`, `ui_components`, `markdown_parser`, `warp_util`, `sum_tree`, or other AGPL-labeled Warp crates as direct dependencies.
+OpenWarp is licensed as `AGPL-3.0-only`.
 
-Current upstream note: the audited Warp revision has `warpui`/`warpui_core` marked MIT, but `cargo tree` shows transitive references to `markdown_parser`, `sum_tree`, and `warp_util`. Treat this as a release blocker until the upstream dependency/license boundary is clarified or those paths are removed/relicensed.
+Reason: `warpui` and `warpui_core` are MIT-labeled crates, but at the pinned Warp revision they directly depend on `markdown_parser`, `sum_tree`, and `warp_util`, which inherit Warp's workspace `AGPL-3.0-only` license. OpenWarp accepts AGPL for this experiment rather than maintaining a fork with those dependencies stripped or replaced.
 
-Before release, run:
+See `docs/license-audit.md` for the full finding and decision.
+
+Useful audit command:
 
 ```sh
 cargo tree -p warp-opencode
-cargo tree -p warp-opencode | grep -E 'warp_terminal|ui_components|markdown_parser|warp_util|sum_tree'
+cargo tree -p warp-opencode | grep -E 'markdown_parser|sum_tree|warp_util'
 ```
-
-Review the exact resolved Warp revision with `cargo deny` or equivalent legal tooling.
 
 ## Platform Notes
 

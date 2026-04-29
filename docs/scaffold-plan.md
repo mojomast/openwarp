@@ -1,18 +1,14 @@
 # OpenWarp Scaffold Plan
 
-This plan defines OpenWarp: a standalone Rust workspace containing the `warp-opencode` binary. It uses only the MIT-labeled Warp UI crates directly: `warpui` and `warpui_core`. AGPL Warp crates such as `app`, `warp_terminal`, `ui_components`, `markdown_parser`, `warp_util`, and `sum_tree` are not direct dependencies and should remain reference-only.
+This plan defines OpenWarp: a standalone Rust workspace containing the `warp-opencode` binary. OpenWarp is AGPL-licensed because upstream `warpui` and `warpui_core` directly depend on AGPL Warp crates at the pinned revision. See `docs/license-audit.md`.
 
-Important license note: the audited Warp checkout shows `warpui`/`warpui_core` are MIT-labeled but their current manifests reference some workspace crates that are AGPL-labeled or license-inherited. The scaffold keeps the direct dependency boundary MIT-only as requested, but release readiness should include `cargo tree` plus `cargo deny`/legal review against the exact Warp revision.
+Important license note: the project has chosen to accept AGPL for the experiment rather than vendor and strip `markdown_parser`, `sum_tree`, and `warp_util` from WarpUI.
 
 ## 1. Cargo Workspace Structure
 
 ```text
 openwarp/
 ├── Cargo.toml
-├── Warp/                  # local checkout, ignored by git
-│   └── crates/
-│       ├── warpui/
-│       └── warpui_core/
 ├── crates/
 │   └── warp-opencode/
 │       ├── Cargo.toml
@@ -25,7 +21,7 @@ openwarp/
     └── scaffold-plan.md
 ```
 
-Root `Cargo.toml` owns dependency versions and points `warpui` and `warpui_core` at the local Warp checkout. `crates/warp-opencode/Cargo.toml` is the only application member for now.
+Root `Cargo.toml` owns dependency versions and pins `warpui` and `warpui_core` to `warpdotdev/warp` commit `c325d146ab314971e1577f168cf45f03118c3ac5`. `crates/warp-opencode/Cargo.toml` is the only application member for now.
 
 The workspace now includes the initial implementation source files. The module structure below remains the intended organization for continued development.
 
@@ -33,8 +29,11 @@ The workspace now includes the initial implementation source files. The module s
 
 ```text
 warp-opencode
-├── warpui                 # MIT-labeled Warp platform/app/window integration
-├── warpui_core            # MIT-labeled Warp view, element, async, model APIs
+├── warpui                 # MIT-labeled Warp UI crate, pinned git dependency
+├── warpui_core            # MIT-labeled Warp core crate, pinned git dependency
+├── markdown_parser        # AGPL direct dependency of upstream WarpUI crates
+├── sum_tree               # AGPL direct dependency of upstream WarpUI crates
+├── warp_util              # AGPL direct dependency of upstream WarpUI crates
 ├── reqwest                # HTTP JSON API client, rustls TLS
 ├── eventsource-client     # /event and /global/event SSE streams
 ├── tokio                  # background runtime for network and stream tasks
@@ -47,18 +46,15 @@ warp-opencode
 └── tracing                # structured diagnostics
 ```
 
-Do not add these Warp crates as dependencies:
+Do not add these additional Warp crates as dependencies unless the AGPL impact is deliberate:
 
 ```text
 Warp/app
 Warp/crates/warp_terminal
 Warp/crates/ui_components
-Warp/crates/markdown_parser
-Warp/crates/warp_util
-Warp/crates/sum_tree
 ```
 
-Terminal rendering should be implemented independently or through permissively licensed third-party crates. The AGPL terminal code may be used only as behavioral reference.
+Terminal rendering should still be implemented independently. `warp_terminal` is not currently part of the dependency graph and should remain reference-only unless a future decision explicitly accepts that additional dependency.
 
 ## 3. Planned Module Structure
 
@@ -131,7 +127,7 @@ For WarpUI compatibility:
 
 ## 5. Build Instructions And Cross-Platform Notes
 
-Build from the workspace root after cloning the local Warp checkout to `Warp/`:
+Build from the workspace root. No local Warp checkout is required:
 
 ```sh
 cargo build -p warp-opencode
@@ -142,10 +138,10 @@ Useful verification commands:
 
 ```sh
 cargo tree -p warp-opencode
-cargo tree -p warp-opencode | grep -E 'warp_terminal|ui_components|markdown_parser|warp_util|sum_tree'
+cargo tree -p warp-opencode | grep -E 'markdown_parser|sum_tree|warp_util'
 ```
 
-The second command should be used as a dependency-boundary check. If any AGPL Warp crate appears, stop and either remove the dependency path or get an explicit licensing decision before release.
+The second command documents the known AGPL Warp crates accepted by `docs/license-audit.md`.
 
 Linux notes:
 

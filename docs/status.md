@@ -8,6 +8,8 @@ OpenWarp is the standalone workspace for the `warp-opencode` binary: a native Ru
 - Extracted the OpenCode Hono API contract in `docs/opencode-api-contract.md`.
 - Inventoried OpenCode's SolidJS UI states in `docs/ui-state-inventory.md`.
 - Planned the Rust workspace in `docs/scaffold-plan.md`.
+- Resolved the WarpUI license blocker in `docs/license-audit.md` by accepting AGPL for OpenWarp.
+- Migrated WarpUI dependencies from local path dependencies to pinned git dependencies.
 - Added the `warp-opencode` crate with API, PTY, state, and view modules.
 - Added integration tests for session/message flow, permission event decoding, and streaming part deltas.
 
@@ -22,9 +24,9 @@ cargo test -p warp-opencode --tests
 
 Both commands passed.
 
-## Known Release Blocker
+## License Status
 
-The crate directly depends only on `warpui` and `warpui_core`, but the current audited Warp revision pulls `markdown_parser`, `sum_tree`, and `warp_util` transitively through those crates. This must be resolved or explicitly approved before release if the project requires a strict MIT-only Warp dependency boundary.
+OpenWarp is `AGPL-3.0-only`. The previous MIT-only boundary is intentionally abandoned for this experiment because upstream `warpui` and `warpui_core` directly depend on AGPL crates. See `docs/license-audit.md`.
 
 ## Next Work
 
