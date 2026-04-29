@@ -8,10 +8,13 @@ on:
 
 env:
   RUST_TOOLCHAIN: stable
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CARGO_INCREMENTAL: "0"
 
 jobs:
   build-windows:
-    name: Build - Windows x64
+    name: Build · Windows x64
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,16 +24,18 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - name: Cache Cargo
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.5
+
+      - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            target
-          key: windows-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: windows-
+          key: windows-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: windows-registry-
 
       - name: Install LLVM (for bindgen)
         uses: KyleMayes/install-llvm-action@v2
@@ -52,8 +57,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist\warp-opencode-windows-x64
-          Copy-Item target\release\warp-opencode.exe dist\warp-opencode-windows-x64\warp-opencode.exe
-          Compress-Archive -Path dist\warp-opencode-windows-x64\warp-opencode.exe -DestinationPath dist\warp-opencode-windows-x64.zip
+          Copy-Item target\release\warp-opencode.exe `
+            dist\warp-opencode-windows-x64\warp-opencode.exe
+          Compress-Archive `
+            -Path dist\warp-opencode-windows-x64 `
+            -DestinationPath dist\warp-opencode-windows-x64.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -63,7 +71,7 @@ jobs:
           if-no-files-found: error
 
   build-macos:
-    name: Build - macOS arm64
+    name: Build · macOS arm64
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,16 +81,18 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - name: Cache Cargo
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.5
+
+      - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            target
-          key: macos-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: macos-
+          key: macos-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: macos-registry-
 
       - name: Build
         run: cargo build --release -p warp-opencode
