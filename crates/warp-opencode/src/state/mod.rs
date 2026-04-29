@@ -285,4 +285,30 @@ impl AppStore {
         self.model.write().await.apply_event(event);
         let _ = self.changes.send(());
     }
+
+    pub async fn set_active_session(&self, session_id: Option<SessionId>) {
+        self.model.write().await.active_session_id = session_id;
+        let _ = self.changes.send(());
+    }
+
+    pub async fn upsert_session(&self, session: Session) {
+        self.model.write().await.upsert_session(session);
+        let _ = self.changes.send(());
+    }
+
+    pub async fn remove_session(&self, session_id: &str) {
+        let mut model = self.model.write().await;
+        model.sessions.retain(|session| session.id != session_id);
+        model.threads.remove(session_id);
+        model.statuses.remove(session_id);
+        if model.active_session_id.as_deref() == Some(session_id) {
+            model.active_session_id = model.sessions.first().map(|session| session.id.clone());
+        }
+        let _ = self.changes.send(());
+    }
+
+    pub async fn remove_permission(&self, request_id: &str) {
+        self.model.write().await.permissions.remove(request_id);
+        let _ = self.changes.send(());
+    }
 }

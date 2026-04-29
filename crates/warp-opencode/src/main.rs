@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::borrow::Cow;
 use warp_opencode::api::{ApiClient, ApiConfig, Auth};
+use warp_opencode::sse_loop::SseLoop;
 use warp_opencode::state::{AppStore, ConnectionStatus};
 use warp_opencode::views::RootView;
 use warpui::{platform, AssetProvider};
@@ -17,16 +18,27 @@ impl AssetProvider for EmptyAssets {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let mut config = ApiConfig::new(&args.base_url())?;
-    if let Some(password) = args.password {
+    let mut config = ApiConfig::new(args.base_url())?;
+    let auth_token = args.token.clone().or(args.password.clone());
+    if let Some(password) = auth_token.clone() {
         config.auth = Auth::Basic {
-            username: args.username.unwrap_or_else(|| "opencode".to_string()),
+            username: args
+                .username
+                .clone()
+                .unwrap_or_else(|| "opencode".to_string()),
             password,
         };
     }
     let client = ApiClient::new(config)?;
     let store = AppStore::default();
     bootstrap(client.clone(), store.clone()).await;
+    let initial_model = store.snapshot().await;
+    let sse_handle = SseLoop::new(
+        store.clone(),
+        args.base_url(),
+        auth_token.unwrap_or_default(),
+    )
+    .spawn();
 
     let app_builder = platform::AppBuilder::new(
         platform::AppCallbacks::default(),
@@ -35,10 +47,13 @@ async fn main() -> Result<()> {
     );
     let _ = app_builder.run(move |ctx| {
         let store = store.clone();
+        let client = client.clone();
+        let initial_model = initial_model.clone();
         ctx.add_window(warpui::AddWindowOptions::default(), move |ctx| {
-            RootView::new(ctx, store.clone())
+            RootView::new(ctx, client.clone(), store.clone(), initial_model.clone())
         });
     });
+    sse_handle.abort();
     Ok(())
 }
 
@@ -72,16 +87,18 @@ struct Args {
     port: u16,
     username: Option<String>,
     password: Option<String>,
+    token: Option<String>,
 }
 
 impl Args {
     fn parse() -> Self {
         let mut args = std::env::args().skip(1);
         let mut parsed = Self {
-            host: "localhost".to_string(),
+            host: "127.0.0.1".to_string(),
             port: 4096,
             username: None,
             password: None,
+            token: None,
         };
         while let Some(arg) = args.next() {
             match arg.as_str() {
@@ -94,6 +111,7 @@ impl Args {
                 }
                 "--username" => parsed.username = args.next(),
                 "--password" => parsed.password = args.next(),
+                "--token" => parsed.token = args.next(),
                 "--session" => {
                     let _ = args.next();
                 }
@@ -105,7 +123,7 @@ impl Args {
 
     fn base_url(&self) -> String {
         if self.host.starts_with("http://") || self.host.starts_with("https://") {
-            format!("{}", self.host.trim_end_matches('/'))
+            self.host.trim_end_matches('/').to_string()
         } else {
             format!("http://{}:{}", self.host, self.port)
         }

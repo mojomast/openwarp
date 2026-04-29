@@ -6009,6 +6009,8 @@ dependencies = [
  "bytes",
  "eventsource-client",
  "futures-util",
+ "markdown_parser",
+ "pathfinder_geometry",
  "reqwest",
  "serde",
  "serde_json",

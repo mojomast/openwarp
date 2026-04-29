@@ -14,7 +14,7 @@ OpenWarp is not a fork of Warp or OpenCode. It is a separate client that treats 
 
 ## Current Status
 
-This repository currently contains the research docs, workspace scaffold, typed Rust API/state/PTY layers, a minimal WarpUI root view, and integration tests for the API/state pieces.
+This repository currently contains the research docs, workspace scaffold, typed Rust API/state/PTY layers, Phase 3 WarpUI panels, SSE lifecycle wiring, and integration tests for the API/state/SSE pieces.
 
 Implemented:
 
@@ -22,14 +22,14 @@ Implemented:
 - SSE event decoding into typed `OpenCodeEvent` variants.
 - PTY WebSocket transport helper.
 - Reducer-style state store for sessions, message parts, streaming deltas, permissions, questions, providers, and PTYs.
-- Minimal `warp-opencode` binary and WarpUI root view.
+- WarpUI session list, chat thread, input bar, tool approval overlay, question overlay, status bar, and root layout wiring.
+- Reconnecting SSE loop wired into `main.rs`.
 - Mock-server integration tests.
 
 Still planned:
 
-- Full interactive WarpUI panels for the session sidebar, chat thread, input bar, approval/question modals, PTY display, and status bar.
-- SSE reconnect loop wired into the running UI.
-- Terminal rendering and ANSI parsing from a permissively licensed implementation.
+- Rich terminal rendering and ANSI parsing for the PTY panel.
+- Deeper keyboard/focus polish for the first UI pass.
 - Headless or UI-level view tests if the upstream WarpUI test APIs are practical for this crate.
 
 ## Repository Layout

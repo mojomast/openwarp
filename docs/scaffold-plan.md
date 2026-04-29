@@ -70,6 +70,7 @@ src/api/
   pty.rs
   permission.rs
   question.rs
+src/sse_loop.rs
 src/views/
   mod.rs
   root.rs
@@ -89,7 +90,7 @@ src/pty/
   terminal_model.rs
 ```
 
-`main.rs` should create `warpui::platform::AppBuilder`, add the root window, and wire the initial `AppState` model. `api/` owns HTTP, SSE, and schema types derived from `docs/opencode-api-contract.md`. `views/` owns WarpUI `View` implementations and pure rendering composition. `state/` owns canonical app stores, selected IDs, optimistic message state, and event reducers. `pty/` owns the opencode PTY WebSocket client, replay cursor, local buffer, and terminal model adapter.
+`main.rs` creates `warpui::platform::AppBuilder`, starts the SSE loop, adds the root window, and wires the initial `AppState` model. `api/` owns HTTP, SSE, and schema types derived from `docs/opencode-api-contract.md`. `views/` owns WarpUI `View` implementations and rendering composition. `state/` owns canonical app stores, selected IDs, optimistic message state, and event reducers. `pty/` owns the opencode PTY WebSocket client, replay cursor, local buffer, and terminal model adapter.
 
 ## 4. State Management Approach
 

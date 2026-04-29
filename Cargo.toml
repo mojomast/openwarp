@@ -14,6 +14,7 @@ warpui_core = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314
 markdown_parser = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
 sum_tree = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
 warp_util = { git = "https://github.com/warpdotdev/warp", rev = "c325d146ab314971e1577f168cf45f03118c3ac5" }
+pathfinder_geometry = "0.5.1"
 
 anyhow = "1"
 base64 = "0.22"

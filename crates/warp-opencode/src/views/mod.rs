@@ -8,4 +8,15 @@ pub mod session_list;
 pub mod status_bar;
 pub mod tool_approval;
 
+use crate::api::schema::{PermissionId, SessionId};
+
 pub use root::RootView;
+
+#[derive(Debug, Clone)]
+pub enum UiAction {
+    NewSession,
+    SelectSession(SessionId),
+    AllowPermission(PermissionId),
+    DenyPermission(PermissionId),
+    TogglePty,
+}

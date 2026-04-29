@@ -8,6 +8,8 @@ publish.workspace = true
 [dependencies]
 warpui.workspace = true
 warpui_core.workspace = true
+markdown_parser.workspace = true
+pathfinder_geometry.workspace = true
 
 anyhow.workspace = true
 base64.workspace = true
