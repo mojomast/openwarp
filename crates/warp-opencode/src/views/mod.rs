@@ -3,6 +3,7 @@ pub mod root;
 pub mod chat_thread;
 pub mod draft_buffer;
 pub mod input_bar;
+pub mod onboarding;
 pub mod pty_panel;
 pub mod question_prompt;
 pub mod session_list;

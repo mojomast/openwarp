@@ -14,7 +14,7 @@ OpenWarp is not a fork of Warp or OpenCode. It is a separate client that treats 
 
 ## Current Status
 
-This repository currently contains the research docs, workspace scaffold, typed Rust API/state/PTY layers, WarpUI panels, SSE lifecycle wiring, live PTY WebSocket integration, and integration tests for the API/state/SSE/PTY pieces.
+This repository currently contains the research docs, workspace scaffold, typed Rust API/state/PTY layers, WarpUI panels, SSE lifecycle wiring, live PTY WebSocket integration, first-launch remote-server onboarding, and integration tests for the API/state/SSE/PTY pieces.
 
 Implemented:
 
@@ -27,6 +27,8 @@ Implemented:
 - VTE-based PTY terminal grid primitives and live PTY panel rendering.
 - Rope-backed cursor-aware input draft buffer with clipboard paste.
 - Always Allow tool approval handling for matching future permission requests in the same session.
+- Config persistence and onboarding for remote OpenCode server URL/token setup.
+- GitHub Actions CI and release packaging for Windows x64 and macOS arm64 artifacts.
 - Mock-server integration tests.
 
 Still planned:
@@ -79,6 +81,8 @@ Start OpenCode separately, then run:
 ```sh
 cargo run -p warp-opencode -- --host localhost --port 4096
 ```
+
+On first launch without CLI overrides, OpenWarp shows onboarding and saves the server URL/token under the platform config directory. Later launches reconnect automatically.
 
 If the server uses `OPENCODE_SERVER_PASSWORD`:
 

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  RUST_TOOLCHAIN: stable
+
+jobs:
+  check:
+    name: Check - ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install LLVM (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17"
+          cached: true
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy -p warp-opencode -- -D warnings
+        env:
+          LIBCLANG_PATH: ${{ matrix.os == 'windows-latest' && format('{0}\bin', env.LLVM_PATH) || '' }}
+
+      - name: test
+        run: cargo test -p warp-opencode --all
+        env:
+          LIBCLANG_PATH: ${{ matrix.os == 'windows-latest' && format('{0}\bin', env.LLVM_PATH) || '' }}

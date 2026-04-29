@@ -23,6 +23,8 @@ OpenWarp is the standalone workspace for the `warp-opencode` binary: a native Ru
 - Added an Always Allow permission path with in-session auto-approval of matching future permission requests.
 - Added state behavior, PTY grid, draft buffer, and session round-trip tests.
 - Added live PTY session WebSocket tests for output, close handling, and resize messages.
+- Added config persistence and first-launch onboarding so users can enter a remote OpenCode server URL and token, verify via health check, save settings, and then enter the main UI.
+- Added GitHub Actions CI across Linux, Windows, and macOS plus tag-driven release artifacts for Windows x64 and macOS arm64.
 
 ## Verification
 
@@ -47,3 +49,4 @@ OpenWarp is `AGPL-3.0-only`. The previous MIT-only boundary is intentionally aba
 - Add richer PTY focus, mouse scroll, and size-derived resize handling.
 - Add true caret rendering to the input bar.
 - Add UI/headless tests if WarpUI's test utilities are stable enough for this downstream crate.
+- Publish the next release tag after Phase 6 because `v0.3.0-alpha` already points at Phase 5.

@@ -1,9 +1,7 @@
 use anyhow::Result;
 use std::borrow::Cow;
-use warp_opencode::api::{ApiClient, ApiConfig, Auth};
-use warp_opencode::sse_loop::SseLoop;
-use warp_opencode::state::{AppStore, ConnectionStatus};
-use warp_opencode::views::RootView;
+use warp_opencode::config::Config;
+use warp_opencode::views::onboarding::OnboardingView;
 use warpui::{platform, AssetProvider};
 
 #[derive(Clone, Copy)]
@@ -18,27 +16,14 @@ impl AssetProvider for EmptyAssets {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let mut config = ApiConfig::new(args.base_url())?;
-    let auth_token = args.token.clone().or(args.password.clone());
-    if let Some(password) = auth_token.clone() {
-        config.auth = Auth::Basic {
-            username: args
-                .username
-                .clone()
-                .unwrap_or_else(|| "opencode".to_string()),
-            password,
-        };
+    let mut config = Config::load();
+    if let Some(server_url) = args.server_url_override() {
+        config.server_url = Some(server_url);
     }
-    let client = ApiClient::new(config)?;
-    let store = AppStore::default();
-    bootstrap(client.clone(), store.clone()).await;
-    let initial_model = store.snapshot().await;
-    let sse_handle = SseLoop::new(
-        store.clone(),
-        args.base_url(),
-        auth_token.unwrap_or_default(),
-    )
-    .spawn();
+    if let Some(token) = args.token.clone().or(args.password.clone()) {
+        config.token = Some(token);
+    }
+    let username = args.username.unwrap_or_else(|| "opencode".to_string());
 
     let app_builder = platform::AppBuilder::new(
         platform::AppCallbacks::default(),
@@ -46,45 +31,18 @@ async fn main() -> Result<()> {
         None,
     );
     let _ = app_builder.run(move |ctx| {
-        let store = store.clone();
-        let client = client.clone();
-        let initial_model = initial_model.clone();
+        let config = config.clone();
+        let username = username.clone();
         ctx.add_window(warpui::AddWindowOptions::default(), move |ctx| {
-            RootView::new(ctx, client.clone(), store.clone(), initial_model.clone())
+            OnboardingView::new(ctx, config.clone(), username.clone())
         });
     });
-    sse_handle.abort();
     Ok(())
 }
 
-async fn bootstrap(client: ApiClient, store: AppStore) {
-    store.set_connection(ConnectionStatus::Connecting).await;
-    let result = async {
-        let _ = client.health().await?;
-        let sessions = client.list_sessions().await?;
-        let statuses = client.session_status().await.unwrap_or_default();
-        let permissions = client.list_permissions().await.unwrap_or_default();
-        let questions = client.list_questions().await.unwrap_or_default();
-        let providers = client.list_providers().await.ok();
-        store
-            .replace_bootstrap(sessions, statuses, permissions, questions, providers)
-            .await;
-        Ok::<(), warp_opencode::api::ApiError>(())
-    }
-    .await;
-    match result {
-        Ok(()) => store.set_connection(ConnectionStatus::Connected).await,
-        Err(err) => {
-            store
-                .set_connection(ConnectionStatus::Error(err.to_string()))
-                .await
-        }
-    }
-}
-
 struct Args {
-    host: String,
-    port: u16,
+    host: Option<String>,
+    port: Option<u16>,
     username: Option<String>,
     password: Option<String>,
     token: Option<String>,
@@ -94,21 +52,17 @@ impl Args {
     fn parse() -> Self {
         let mut args = std::env::args().skip(1);
         let mut parsed = Self {
-            host: "127.0.0.1".to_string(),
-            port: 4096,
+            host: None,
+            port: None,
             username: None,
             password: None,
             token: None,
         };
         while let Some(arg) = args.next() {
             match arg.as_str() {
-                "--host" => parsed.host = args.next().unwrap_or(parsed.host),
-                "--port" => {
-                    parsed.port = args
-                        .next()
-                        .and_then(|value| value.parse().ok())
-                        .unwrap_or(parsed.port)
-                }
+                "--host" => parsed.host = args.next(),
+                "--server-url" => parsed.host = args.next(),
+                "--port" => parsed.port = args.next().and_then(|value| value.parse().ok()),
                 "--username" => parsed.username = args.next(),
                 "--password" => parsed.password = args.next(),
                 "--token" => parsed.token = args.next(),
@@ -121,11 +75,12 @@ impl Args {
         parsed
     }
 
-    fn base_url(&self) -> String {
-        if self.host.starts_with("http://") || self.host.starts_with("https://") {
-            self.host.trim_end_matches('/').to_string()
+    fn server_url_override(&self) -> Option<String> {
+        let host = self.host.as_deref()?;
+        if host.starts_with("http://") || host.starts_with("https://") {
+            Some(host.trim_end_matches('/').to_string())
         } else {
-            format!("http://{}:{}", self.host, self.port)
+            Some(format!("http://{}:{}", host, self.port.unwrap_or(4096)))
         }
     }
 }
