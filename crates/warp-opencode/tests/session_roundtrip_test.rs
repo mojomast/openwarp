@@ -27,7 +27,7 @@ async fn bootstraps_sessions_and_applies_sse_event_to_store() {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
-        .and(path("/session/"))
+        .and(path("/session"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!([
             {"id":"ses_1","title":"Existing","time":{}},
             {"id":"ses_2","title":"Second","time":{}}

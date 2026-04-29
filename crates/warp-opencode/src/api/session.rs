@@ -15,7 +15,7 @@ impl ApiClient {
     }
 
     pub async fn list_sessions(&self) -> Result<Vec<Session>, ApiError> {
-        self.get_or_default("/session/").await
+        self.get_or_default("/session").await
     }
 
     pub async fn session_status(&self) -> Result<HashMap<SessionId, SessionStatus>, ApiError> {
@@ -24,8 +24,8 @@ impl ApiClient {
 
     pub async fn create_session(&self, input: Option<&SessionCreate>) -> Result<Session, ApiError> {
         match input {
-            Some(input) => self.post("/session/", input).await,
-            None => self.post("/session/", &serde_json::Value::Null).await,
+            Some(input) => self.post("/session", input).await,
+            None => self.post("/session", &serde_json::Value::Null).await,
         }
     }
 

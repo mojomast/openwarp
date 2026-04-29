@@ -3,7 +3,7 @@ use super::schema::{PermissionReply, PermissionRequest};
 
 impl ApiClient {
     pub async fn list_permissions(&self) -> Result<Vec<PermissionRequest>, ApiError> {
-        self.get("/permission/").await
+        self.get_or_default("/permission").await
     }
 
     pub async fn reply_permission(

@@ -9,7 +9,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 async fn creates_session_and_sends_message() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .and(path("/session/"))
+        .and(path("/session"))
         .respond_with(
             ResponseTemplate::new(200)
                 .set_body_json(json!({"id":"ses_1","title":"Test","time":{}})),

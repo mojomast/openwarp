@@ -3,7 +3,7 @@ use super::schema::{QuestionReply, QuestionRequest};
 
 impl ApiClient {
     pub async fn list_questions(&self) -> Result<Vec<QuestionRequest>, ApiError> {
-        self.get("/question/").await
+        self.get_or_default("/question").await
     }
 
     pub async fn reply_question(

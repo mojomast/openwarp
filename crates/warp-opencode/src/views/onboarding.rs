@@ -444,21 +444,21 @@ async fn bootstrap(client: ApiClient, store: AppStore) -> Result<(), ApiError> {
     store.set_connection(ConnectionStatus::Connecting).await;
     let result = async {
         client.health().await?;
-        let sessions = client.get_or_default::<Vec<Session>>("/session/").await?;
+        let sessions = client.get_or_default::<Vec<Session>>("/session").await?;
         let statuses = client
             .get_or_default::<HashMap<SessionId, SessionStatus>>("/session/status")
             .await
             .unwrap_or_default();
         let permissions = client
-            .get_or_default::<Vec<PermissionRequest>>("/permission/")
+            .get_or_default::<Vec<PermissionRequest>>("/permission")
             .await
             .unwrap_or_default();
         let questions = client
-            .get_or_default::<Vec<QuestionRequest>>("/question/")
+            .get_or_default::<Vec<QuestionRequest>>("/question")
             .await
             .unwrap_or_default();
         let providers = client
-            .get_or_default::<ProviderListResult>("/provider/")
+            .get_or_default::<ProviderListResult>("/provider")
             .await
             .ok();
         store
