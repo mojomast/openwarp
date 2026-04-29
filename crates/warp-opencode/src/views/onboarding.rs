@@ -18,6 +18,9 @@ use warpui::{
 #[derive(Debug, Clone)]
 pub enum OnboardingAction {
     Insert(String),
+    Paste(String),
+    PasteUrl(String),
+    PasteToken(String),
     SetUrl(String),
     SetToken(String),
     Backspace,
@@ -278,6 +281,11 @@ impl OnboardingView {
             .with_always_handle()
             .on_keydown(|ctx, _app, keystroke| {
                 match keystroke.key.as_str() {
+                    "v" if (keystroke.ctrl || keystroke.cmd) && !keystroke.alt => {
+                        if let Some(text) = clipboard_text() {
+                            ctx.dispatch_typed_action(OnboardingAction::Paste(text));
+                        }
+                    }
                     "tab" => ctx.dispatch_typed_action(OnboardingAction::FocusNext),
                     "enter" => ctx.dispatch_typed_action(OnboardingAction::Connect),
                     "backspace" => ctx.dispatch_typed_action(OnboardingAction::Backspace),
@@ -315,6 +323,24 @@ impl TypedActionView for OnboardingView {
                     FocusedField::Token => self.token.insert_str(text),
                     FocusedField::Connect => {}
                 }
+                ctx.notify();
+            }
+            OnboardingAction::Paste(text) => {
+                match self.focused {
+                    FocusedField::Url => self.url.paste(text),
+                    FocusedField::Token => self.token.paste(text),
+                    FocusedField::Connect => {}
+                }
+                ctx.notify();
+            }
+            OnboardingAction::PasteUrl(text) => {
+                self.focused = FocusedField::Url;
+                self.url.paste(text);
+                ctx.notify();
+            }
+            OnboardingAction::PasteToken(text) => {
+                self.focused = FocusedField::Token;
+                self.token.paste(text);
                 ctx.notify();
             }
             OnboardingAction::SetUrl(text) => {
@@ -413,7 +439,7 @@ async fn connect_and_bootstrap(
 async fn bootstrap(client: ApiClient, store: AppStore) -> Result<(), ApiError> {
     store.set_connection(ConnectionStatus::Connecting).await;
     let result = async {
-        let _ = client.health().await?;
+        client.health().await?;
         let sessions = client.list_sessions().await?;
         let statuses = client.session_status().await.unwrap_or_default();
         let permissions = client.list_permissions().await.unwrap_or_default();
@@ -449,6 +475,19 @@ fn is_plain_printable_key(key: &str, keystroke: &warpui::keymap::Keystroke) -> b
         && !keystroke.cmd
         && !keystroke.meta
         && key.chars().count() == 1
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn clipboard_text() -> Option<String> {
+    arboard::Clipboard::new()
+        .and_then(|mut clipboard| clipboard.get_text())
+        .ok()
+        .filter(|text| !text.is_empty())
+}
+
+#[cfg(target_family = "wasm")]
+fn clipboard_text() -> Option<String> {
+    None
 }
 
 fn text(

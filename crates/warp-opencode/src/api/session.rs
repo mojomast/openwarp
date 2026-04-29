@@ -3,8 +3,15 @@ use super::schema::*;
 use std::collections::HashMap;
 
 impl ApiClient {
-    pub async fn health(&self) -> Result<Health, ApiError> {
-        self.get("/global/health").await
+    pub async fn health(&self) -> Result<(), ApiError> {
+        let response = self.http().get(self.url("/health")?).send().await?;
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await.unwrap_or_default();
+            Err(ApiError::Status { status, body })
+        }
     }
 
     pub async fn list_sessions(&self) -> Result<Vec<Session>, ApiError> {
