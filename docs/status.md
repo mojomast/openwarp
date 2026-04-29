@@ -25,6 +25,8 @@ OpenWarp is the standalone workspace for the `warp-opencode` binary: a native Ru
 - Added live PTY session WebSocket tests for output, close handling, and resize messages.
 - Added config persistence and first-launch onboarding so users can enter a remote OpenCode server URL and token, verify via health check, save settings, and then enter the main UI.
 - Added GitHub Actions CI across Linux, Windows, and macOS plus tag-driven release artifacts for Windows x64 and macOS arm64.
+- Fixed OpenCode bootstrap routes to use non-trailing API paths so the app receives JSON instead of the OpenCode SPA fallback HTML.
+- Set the native app window to open at 1200x800 with normal window style and a root layout that expands across the full frame, keeping onboarding content centered without constraining the painted background.
 
 ## Verification
 

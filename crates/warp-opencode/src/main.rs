@@ -2,6 +2,8 @@ use anyhow::Result;
 use std::borrow::Cow;
 use warp_opencode::config::Config;
 use warp_opencode::views::onboarding::OnboardingView;
+use warpui::platform::{WindowBounds, WindowStyle};
+use warpui::prelude::vec2f;
 use warpui::{platform, AssetProvider};
 
 #[derive(Clone, Copy)]
@@ -33,9 +35,15 @@ async fn main() -> Result<()> {
     let _ = app_builder.run(move |ctx| {
         let config = config.clone();
         let username = username.clone();
-        ctx.add_window(warpui::AddWindowOptions::default(), move |ctx| {
-            OnboardingView::new(ctx, config.clone(), username.clone())
-        });
+        ctx.add_window(
+            warpui::AddWindowOptions {
+                window_bounds: WindowBounds::ExactSize(vec2f(1200., 800.)),
+                window_style: WindowStyle::Normal,
+                title: Some("OpenWarp".to_string()),
+                ..Default::default()
+            },
+            move |ctx| OnboardingView::new(ctx, config.clone(), username.clone()),
+        );
     });
     Ok(())
 }

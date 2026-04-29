@@ -10,9 +10,8 @@ use crate::views::root::RootView;
 use std::collections::HashMap;
 use warpui::color::ColorU;
 use warpui::elements::{
-    Border, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
-    DispatchEventResult, Element, EventHandler, Flex, MainAxisAlignment, MainAxisSize,
-    ParentElement, Radius, Text,
+    Align, Border, ChildView, ConstrainedBox, Container, CornerRadius, DispatchEventResult,
+    Element, EventHandler, Flex, MainAxisSize, ParentElement, Radius, Text,
 };
 use warpui::fonts::FamilyId;
 use warpui::{
@@ -270,16 +269,9 @@ impl OnboardingView {
         .with_width(480.)
         .finish();
 
-        let page = Container::new(
-            Flex::column()
-                .with_main_axis_size(MainAxisSize::Max)
-                .with_main_axis_alignment(MainAxisAlignment::Center)
-                .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                .with_child(card)
-                .finish(),
-        )
-        .with_background_color(ColorU::new(9, 11, 17, 255))
-        .finish();
+        let page = Container::new(Align::new(card).finish())
+            .with_background_color(ColorU::new(9, 11, 17, 255))
+            .finish();
 
         EventHandler::new(page)
             .with_always_handle()
@@ -401,7 +393,7 @@ impl View for OnboardingView {
 
     fn render(&self, _: &AppContext) -> Box<dyn Element> {
         if let Some(root) = &self.root {
-            return ChildView::new(root).finish();
+            return Align::new(ChildView::new(root).finish()).finish();
         }
         self.render_onboarding()
     }
