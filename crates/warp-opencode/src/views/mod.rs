@@ -18,6 +18,7 @@ pub enum UiAction {
     NewSession,
     SelectSession(SessionId),
     AllowPermission(PermissionId),
+    AlwaysAllowPermission(PermissionId),
     DenyPermission(PermissionId),
     TogglePty,
 }

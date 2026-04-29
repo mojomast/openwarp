@@ -92,6 +92,11 @@ impl DraftBuffer {
         self.insert(text);
     }
 
+    pub fn paste(&mut self, text: &str) {
+        let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+        self.insert_str(&normalized);
+    }
+
     pub fn insert_char(&mut self, ch: char) {
         self.rope.insert_char(self.cursor, ch);
         self.cursor += 1;
@@ -372,5 +377,27 @@ mod tests {
         draft.clear();
         assert!(draft.is_empty());
         assert_eq!(draft.cursor_char_idx(), 0);
+    }
+
+    #[test]
+    fn paste_normalizes_windows_and_classic_line_endings() {
+        let mut draft = DraftBuffer::new();
+
+        draft.paste("one\r\ntwo\rthree");
+
+        assert_eq!(draft.to_string(), "one\ntwo\nthree");
+        assert_eq!(draft.line_count(), 3);
+        assert_eq!(draft.cursor(), draft.len_chars());
+    }
+
+    #[test]
+    fn paste_multiline_inserts_at_cursor() {
+        let mut draft = DraftBuffer::from_text("abef");
+        draft.set_cursor(2);
+
+        draft.paste("c\nd");
+
+        assert_eq!(draft.to_string(), "abc\ndef");
+        assert_eq!(draft.cursor_line_and_col(), (1, 1));
     }
 }

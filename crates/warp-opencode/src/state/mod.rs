@@ -20,6 +20,12 @@ pub struct SessionThread {
 }
 
 #[derive(Debug, Clone)]
+pub struct AlwaysAllowedTool {
+    pub tool_name: String,
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct AppModel {
     pub connection: ConnectionStatus,
     pub sessions: Vec<Session>,
@@ -30,6 +36,8 @@ pub struct AppModel {
     pub questions: HashMap<QuestionId, QuestionRequest>,
     pub providers: Option<ProviderListResult>,
     pub ptys: HashMap<PtyId, PtyInfo>,
+    pub always_allowed: Vec<AlwaysAllowedTool>,
+    pub pending_auto_approvals: Vec<PermissionId>,
 }
 
 impl Default for AppModel {
@@ -44,6 +52,8 @@ impl Default for AppModel {
             questions: HashMap::new(),
             providers: None,
             ptys: HashMap::new(),
+            always_allowed: Vec::new(),
+            pending_auto_approvals: Vec::new(),
         }
     }
 }
@@ -92,7 +102,11 @@ impl AppModel {
                 self.statuses.insert(session_id, SessionStatus::Idle);
             }
             OpenCodeEvent::PermissionAsked(request) => {
-                self.permissions.insert(request.id.clone(), request);
+                if self.is_always_allowed(&request) {
+                    self.pending_auto_approvals.push(request.id.clone());
+                } else {
+                    self.permissions.insert(request.id.clone(), request);
+                }
             }
             OpenCodeEvent::PermissionReplied { request_id, .. } => {
                 self.permissions.remove(&request_id);
@@ -131,6 +145,24 @@ impl AppModel {
 
     fn thread_mut(&mut self, session_id: &str) -> &mut SessionThread {
         self.threads.entry(session_id.to_string()).or_default()
+    }
+
+    pub fn permission_tool_name(request: &PermissionRequest) -> String {
+        request
+            .metadata
+            .get("tool_name")
+            .or_else(|| request.metadata.get("toolName"))
+            .or_else(|| request.metadata.get("tool"))
+            .and_then(|value| value.as_str())
+            .unwrap_or(&request.permission)
+            .to_string()
+    }
+
+    fn is_always_allowed(&self, request: &PermissionRequest) -> bool {
+        let tool_name = Self::permission_tool_name(request);
+        self.always_allowed.iter().any(|allowed| {
+            allowed.tool_name == tool_name && allowed.session_id == request.session_id
+        })
     }
 }
 
@@ -310,5 +342,29 @@ impl AppStore {
     pub async fn remove_permission(&self, request_id: &str) {
         self.model.write().await.permissions.remove(request_id);
         let _ = self.changes.send(());
+    }
+
+    pub async fn always_allow_tool(&self, tool_name: String, session_id: String) {
+        let mut model = self.model.write().await;
+        if !model
+            .always_allowed
+            .iter()
+            .any(|allowed| allowed.tool_name == tool_name && allowed.session_id == session_id)
+        {
+            model.always_allowed.push(AlwaysAllowedTool {
+                tool_name,
+                session_id,
+            });
+        }
+        let _ = self.changes.send(());
+    }
+
+    pub async fn drain_auto_approvals(&self) -> Vec<PermissionId> {
+        let mut model = self.model.write().await;
+        let approvals = std::mem::take(&mut model.pending_auto_approvals);
+        if !approvals.is_empty() {
+            let _ = self.changes.send(());
+        }
+        approvals
     }
 }

@@ -173,4 +173,4 @@ PTY notes:
 
 - Create terminals with `POST /pty/` and connect to `/pty/:ptyID/connect?cursor=<cursor>` using `tokio-tungstenite`.
 - Text WebSocket frames are raw terminal output/input. Binary control frames starting with `0x00` contain cursor JSON.
-- Keep terminal transport, VTE parsing, and grid state separate from WarpUI. The current PTY panel renders the grid through WarpUI primitives; live WebSocket feeding is the next PTY integration step.
+- Keep terminal transport, VTE parsing, and grid state separate from WarpUI. `pty_session.rs` owns the live WebSocket task and publishes `PtyState` snapshots to the WarpUI panel over a watch channel.

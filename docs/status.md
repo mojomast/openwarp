@@ -17,9 +17,12 @@ OpenWarp is the standalone workspace for the `warp-opencode` binary: a native Ru
 - Added a reconnecting SSE lifecycle loop and wired it into `main.rs`.
 - Added integration tests for session/message flow, permission event decoding, and streaming part deltas.
 - Implemented Phase 4 PTY terminal grid primitives using `vte`, including ANSI parsing, SGR styles, cursor movement, screen clearing, scrollback, resize preservation, and xterm 256-color mapping.
-- Updated the PTY panel to render the VTE-backed grid snapshot. Live WebSocket feeding into the panel remains a follow-up integration item.
+- Updated the PTY panel to connect to the live OpenCode PTY WebSocket, feed output into the VTE-backed grid, and send terminal keystrokes back to the server.
 - Replaced the input bar's append-only string with a `ropey`-backed cursor-aware `DraftBuffer`, including multiline movement, word deletion, line deletion, and caret display fallback.
+- Added clipboard paste through `arboard`, including CRLF/CR normalization in `DraftBuffer::paste`; IME composition remains limited by the currently exposed downstream WarpUI event API.
+- Added an Always Allow permission path with in-session auto-approval of matching future permission requests.
 - Added state behavior, PTY grid, draft buffer, and session round-trip tests.
+- Added live PTY session WebSocket tests for output, close handling, and resize messages.
 
 ## Verification
 
@@ -40,8 +43,7 @@ OpenWarp is `AGPL-3.0-only`. The previous MIT-only boundary is intentionally aba
 
 ## Next Work
 
-- Wire the SSE stream into the running WarpUI application lifecycle.
-- Add terminal renderer/ANSI parser for the PTY panel.
-- Connect live PTY WebSocket output/input to the VTE-backed PTY panel.
-- Add clipboard paste, IME, richer focus, and true caret rendering to the input bar.
+- Add IME composition support if WarpUI exposes stable downstream composition callbacks.
+- Add richer PTY focus, mouse scroll, and size-derived resize handling.
+- Add true caret rendering to the input bar.
 - Add UI/headless tests if WarpUI's test utilities are stable enough for this downstream crate.

@@ -44,6 +44,7 @@ pub enum InputBarAction {
     DeleteWordForward,
     DeleteToStartOfLine,
     DeleteToEndOfLine,
+    Paste(String),
 }
 
 #[derive(Debug, Clone)]
@@ -254,6 +255,11 @@ impl TypedActionView for InputBarView {
                 self.send_state = SendState::Idle;
                 ctx.notify();
             }
+            InputBarAction::Paste(text) if self.is_active_session_idle() => {
+                self.draft.paste(text);
+                self.send_state = SendState::Idle;
+                ctx.notify();
+            }
             InputBarAction::Backspace if self.is_active_session_idle() => {
                 self.draft.delete_backward();
                 self.send_state = SendState::Idle;
@@ -413,11 +419,13 @@ impl View for InputBarView {
             .on_keydown(|ctx, _app, keystroke| {
                 let key = keystroke.key.as_str();
 
-                // Clipboard paste is intentionally not handled here yet. This
-                // crate does not expose an obvious WarpUI clipboard API at this
-                // layer, and adding a platform clipboard dependency would make
-                // the composer brittle across Warp targets.
                 match key {
+                    "v" if (keystroke.cmd || keystroke.ctrl) && !keystroke.alt => {
+                        match clipboard_text() {
+                            Some(text) => ctx.dispatch_typed_action(InputBarAction::Paste(text)),
+                            None => return DispatchEventResult::PropagateToParent,
+                        }
+                    }
                     "enter" if keystroke.shift => {
                         ctx.dispatch_typed_action(InputBarAction::Newline)
                     }
@@ -471,4 +479,16 @@ fn is_plain_printable_key(key: &str, keystroke: &warpui::keymap::Keystroke) -> b
         && !keystroke.cmd
         && !keystroke.meta
         && key.chars().count() == 1
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn clipboard_text() -> Option<String> {
+    arboard::Clipboard::new()
+        .and_then(|mut clipboard| clipboard.get_text())
+        .ok()
+}
+
+#[cfg(target_family = "wasm")]
+fn clipboard_text() -> Option<String> {
+    None
 }

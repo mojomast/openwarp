@@ -32,3 +32,6 @@ vte.workspace = true
 
 [dev-dependencies]
 wiremock = "0.6"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+arboard = { version = "3", default-features = false }

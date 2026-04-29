@@ -49,6 +49,18 @@ fn permission(id: &str, session_id: &str) -> PermissionRequest {
     }
 }
 
+fn permission_with_tool(id: &str, session_id: &str, tool_name: &str) -> PermissionRequest {
+    PermissionRequest {
+        id: id.to_string(),
+        session_id: session_id.to_string(),
+        permission: tool_name.to_string(),
+        patterns: vec!["*".to_string()],
+        metadata: json!({}),
+        always: Vec::new(),
+        tool: None,
+    }
+}
+
 #[test]
 fn session_activation_survives_upserts_and_moves_on_delete() {
     let mut model = AppModel::default();
@@ -190,4 +202,32 @@ async fn reconnect_status_can_be_observed_after_first_disconnect() {
         store.snapshot().await.connection,
         ConnectionStatus::Reconnecting { attempt: 1 }
     );
+}
+
+#[tokio::test]
+async fn always_allowed_tool_auto_queues_matching_permission() {
+    let store = AppStore::default();
+    store
+        .apply_event(OpenCodeEvent::PermissionAsked(permission_with_tool(
+            "perm_1", "ses_1", "bash",
+        )))
+        .await;
+    assert!(store.snapshot().await.permissions.contains_key("perm_1"));
+
+    store
+        .always_allow_tool("bash".to_string(), "ses_1".to_string())
+        .await;
+    store
+        .apply_event(OpenCodeEvent::PermissionAsked(permission_with_tool(
+            "perm_2", "ses_1", "bash",
+        )))
+        .await;
+
+    let model = store.snapshot().await;
+    assert!(!model.permissions.contains_key("perm_2"));
+    assert_eq!(model.pending_auto_approvals, vec!["perm_2".to_string()]);
+
+    let auto = store.drain_auto_approvals().await;
+    assert_eq!(auto, vec!["perm_2".to_string()]);
+    assert!(store.snapshot().await.pending_auto_approvals.is_empty());
 }

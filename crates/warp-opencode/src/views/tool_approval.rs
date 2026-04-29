@@ -101,17 +101,24 @@ fn modal_for_request(request: &PermissionRequest, font_family: FamilyId) -> Box<
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
                 .with_spacing(10.)
                 .with_child(action_button(
-                    "Deny",
-                    UiAction::DenyPermission(request.id.clone()),
-                    ColorU::new(80, 36, 40, 255),
-                    ColorU::new(116, 48, 54, 255),
-                    font_family,
-                ))
-                .with_child(action_button(
                     "Allow",
                     UiAction::AllowPermission(request.id.clone()),
                     ColorU::new(38, 92, 64, 255),
                     ColorU::new(48, 126, 82, 255),
+                    font_family,
+                ))
+                .with_child(action_button(
+                    "Always Allow",
+                    UiAction::AlwaysAllowPermission(request.id.clone()),
+                    ColorU::new(92, 71, 28, 255),
+                    ColorU::new(132, 98, 34, 255),
+                    font_family,
+                ))
+                .with_child(action_button(
+                    "Deny",
+                    UiAction::DenyPermission(request.id.clone()),
+                    ColorU::new(80, 36, 40, 255),
+                    ColorU::new(116, 48, 54, 255),
                     font_family,
                 ))
                 .finish(),
@@ -126,7 +133,7 @@ fn modal_for_request(request: &PermissionRequest, font_family: FamilyId) -> Box<
             .with_corner_radius(CornerRadius::with_all(Radius::Pixels(12.)))
             .finish(),
     )
-    .with_width(620.)
+    .with_width(700.)
     .finish()
 }
 

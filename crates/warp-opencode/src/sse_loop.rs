@@ -1,3 +1,4 @@
+use crate::api::schema::{PermissionReply, PermissionReplyKind};
 use crate::api::{ApiClient, ApiConfig, Auth, EventStream};
 use crate::state::{AppStore, ConnectionStatus};
 use futures_util::StreamExt;
@@ -62,7 +63,20 @@ impl SseLoop {
                     let mut disconnect_reason = "event stream closed".to_string();
                     while let Some(item) = stream.next().await {
                         match item {
-                            Ok(event) => self.store.apply_event(event).await,
+                            Ok(event) => {
+                                self.store.apply_event(event).await;
+                                for request_id in self.store.drain_auto_approvals().await {
+                                    let reply = PermissionReply {
+                                        reply: PermissionReplyKind::Always,
+                                        message: None,
+                                    };
+                                    if let Err(error) =
+                                        client.reply_permission(&request_id, &reply).await
+                                    {
+                                        tracing::warn!(%request_id, %error, "failed to auto-approve permission");
+                                    }
+                                }
+                            }
                             Err(err) => {
                                 disconnect_reason = err.to_string();
                                 break;

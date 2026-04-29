@@ -299,7 +299,7 @@ Recommended integration pattern:
 - Run a background task that waits on `receiver.recv().await`.
 - On each change, obtain `store.snapshot().await`, then call `spawner.spawn(move |view, ctx| { view.snapshot = snapshot; ctx.notify(); })`.
 
-Current limitation: `RootView` currently stores `AppStore` but does not subscribe or call `ctx.notify()`, so store changes will not re-render. The exact background-task plumbing must be added downstream; this doc intentionally does not implement it.
+OpenWarp pattern: `RootView` stores `AppStore`, subscribes to changes with `ctx.spawner()`, and updates child snapshots from the UI thread. `PtyPanelView` uses the same pattern for live PTY `watch::Receiver<PtyState>` updates: a Tokio task waits for state changes, then calls the view spawner to replace the render snapshot and notify.
 
 ## 9. Minimal View Template
 
@@ -443,3 +443,8 @@ warpui::platform::app::AppBuilder::new_headless(callbacks, assets, Some(driver))
 ```
 
 Current OpenWarp limitation: `crates/warp-opencode` depends on `warpui`/`warpui_core` from the workspace without enabling `test-util`, and the app does not yet provide a small public harness that creates `RootView` in a headless `AppBuilder` with asset callbacks. The current public APIs are enough for state/API/SSE tests, but not for a stable, low-boilerplate `view_snapshot_tests.rs`. Those view snapshot tests were therefore skipped for Phase 4 Workstream 3 rather than adding brittle tests coupled to upstream private platform details.
+
+## 12. Known Limitations
+
+- IME: the audited Warp platform layer receives IME preedit/commit events, but the downstream `EventHandler::on_keydown` path currently used by OpenWarp does not expose stable composition callbacks such as `on_ime_compose` or `on_ime_commit`. OpenWarp therefore handles committed printable key text and clipboard paste, but does not render in-progress IME composition text yet.
+- PTY mouse wheel: OpenWarp currently supports Page Up/Page Down scroll actions in the PTY panel. A direct mouse-wheel handler was not wired because the local `EventHandler` API documentation used by this crate only exposed click, hover, and key callbacks during this pass.

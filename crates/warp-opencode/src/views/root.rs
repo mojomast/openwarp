@@ -3,7 +3,7 @@ use crate::api::ApiClient;
 use crate::state::{AppModel, AppStore};
 use crate::views::chat_thread::ChatThreadView;
 use crate::views::input_bar::InputBarView;
-use crate::views::pty_panel::render_pty_panel;
+use crate::views::pty_panel::PtyPanelView;
 use crate::views::question_prompt::render_question_prompt_overlay;
 use crate::views::session_list::{render_session_list, SessionListSnapshot};
 use crate::views::status_bar::StatusBarView;
@@ -29,6 +29,7 @@ pub struct RootView {
     chat_thread: ViewHandle<ChatThreadView>,
     input_bar: ViewHandle<InputBarView>,
     status_bar: ViewHandle<StatusBarView>,
+    pty_panel: ViewHandle<PtyPanelView>,
     pty_visible: bool,
 }
 
@@ -56,6 +57,12 @@ impl RootView {
             move |_| StatusBarView::new(font_family, model.clone())
         });
 
+        let pty_panel = ctx.add_typed_action_view({
+            let client = client.clone();
+            let model = model.clone();
+            move |_| PtyPanelView::new(font_family, client.clone(), model.clone())
+        });
+
         let spawner = ctx.spawner();
         let mut changes = store.subscribe();
         let store_for_task = store.clone();
@@ -78,6 +85,7 @@ impl RootView {
             chat_thread,
             input_bar,
             status_bar,
+            pty_panel,
             pty_visible: false,
         }
     }
@@ -102,6 +110,10 @@ impl RootView {
         ctx.update_view(&self.status_bar, |view, child_ctx| {
             view.update_model(model);
             child_ctx.notify();
+        });
+        let model = self.model.clone();
+        ctx.update_view(&self.pty_panel, |view, child_ctx| {
+            view.set_snapshot(model.clone(), child_ctx);
         });
     }
 
@@ -171,6 +183,24 @@ impl TypedActionView for RootView {
                 );
                 ctx.notify();
             }
+            UiAction::AlwaysAllowPermission(request_id) => {
+                if let Some(request) = self.model.permissions.get(request_id).cloned() {
+                    let store = self.store.clone();
+                    let tool_name = AppModel::permission_tool_name(&request);
+                    let session_id = request.session_id.clone();
+                    tokio::spawn(async move {
+                        store.always_allow_tool(tool_name, session_id).await;
+                    });
+                }
+                self.handle_permission(
+                    request_id.clone(),
+                    PermissionReply {
+                        reply: PermissionReplyKind::Always,
+                        message: None,
+                    },
+                );
+                ctx.notify();
+            }
             UiAction::DenyPermission(request_id) => {
                 self.handle_permission(
                     request_id.clone(),
@@ -215,7 +245,7 @@ impl View for RootView {
             .with_child(Expanded::new(1., workspace).finish());
 
         if self.pty_visible {
-            root = root.with_child(render_pty_panel(&self.model, self.font_family));
+            root = root.with_child(ChildView::new(&self.pty_panel).finish());
         }
 
         let base = Container::new(
