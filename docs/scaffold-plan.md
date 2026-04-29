@@ -73,6 +73,7 @@ src/api/
 src/sse_loop.rs
 src/views/
   mod.rs
+  draft_buffer.rs
   root.rs
   session_list.rs
   chat_thread.rs
@@ -86,11 +87,14 @@ src/state/
 src/pty/
   mod.rs
   client.rs
+  colors.rs
   buffer.rs
+  pty_state.rs
+  terminal.rs
   terminal_model.rs
 ```
 
-`main.rs` creates `warpui::platform::AppBuilder`, starts the SSE loop, adds the root window, and wires the initial `AppState` model. `api/` owns HTTP, SSE, and schema types derived from `docs/opencode-api-contract.md`. `views/` owns WarpUI `View` implementations and rendering composition. `state/` owns canonical app stores, selected IDs, optimistic message state, and event reducers. `pty/` owns the opencode PTY WebSocket client, replay cursor, local buffer, and terminal model adapter.
+`main.rs` creates `warpui::platform::AppBuilder`, starts the SSE loop, adds the root window, and wires the initial `AppState` model. `api/` owns HTTP, SSE, and schema types derived from `docs/opencode-api-contract.md`. `views/` owns WarpUI `View` implementations, rendering composition, and the `DraftBuffer` input model. `state/` owns canonical app stores, selected IDs, optimistic message state, and event reducers. `pty/` owns the opencode PTY WebSocket client, VTE terminal grid, xterm color mapping, replay cursor, local buffer, and terminal model adapter.
 
 ## 4. State Management Approach
 
@@ -169,4 +173,4 @@ PTY notes:
 
 - Create terminals with `POST /pty/` and connect to `/pty/:ptyID/connect?cursor=<cursor>` using `tokio-tungstenite`.
 - Text WebSocket frames are raw terminal output/input. Binary control frames starting with `0x00` contain cursor JSON.
-- Keep terminal buffer and ANSI parsing separate from WarpUI. Expose the rendered terminal as a custom MIT-compatible element or a normal `View` composed from MIT WarpUI primitives.
+- Keep terminal transport, VTE parsing, and grid state separate from WarpUI. The current PTY panel renders the grid through WarpUI primitives; live WebSocket feeding is the next PTY integration step.

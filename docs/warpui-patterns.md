@@ -415,3 +415,31 @@ Limitations:
 - The local `crates/warp-opencode` workspace already declares `markdown_parser` in `Cargo.toml`, but assistant-message rendering has not been implemented.
 - Images, embedded mappings, and GFM tables parse into `FormattedTextLine` variants, but downstream UI may need placeholders or custom handling depending on the desired assistant-message behavior.
 - For parse failures, downstream code should fall back to plain `Text` or `FormattedTextElement::from_str` rather than panicking on streamed assistant content.
+
+## 11. Testing And Headless Support
+
+Local Warp checkout reviewed: `/home/mojo/projects/openwarp/Warp` at the paths below.
+
+WarpUI has two distinct test-oriented layers:
+
+- `warpui` exposes a headless platform backend via `warpui::platform::app::AppBuilder::new_headless(...)` (`Warp/crates/warpui/src/platform/app.rs`). It constructs the headless platform (`Warp/crates/warpui/src/platform/headless/*`) and reuses the test font DB, so it can run without native windows.
+- The `test-util` Cargo feature (`warpui` feature `test-util`, forwarding to `warpui_core/test-util`) enables test-only helpers such as spawned-future tracking (`AppContext::await_spawned_future`) and delegate inspection (`get_cursor_shape`). Upstream enables this feature for its own dev-dependencies.
+- Integration-style `TestDriver`/`Builder` APIs live under `warpui_core::integration` (`Warp/crates/warpui_core/src/integration/driver.rs`) and are intended to be handed to `AppBuilder::{new,new_headless}` so the driver runs after app initialization.
+
+Practical pattern for future view tests:
+
+```rust
+let driver = warpui::integration::Builder::new(work_dir)
+    .with_timeout(Duration::from_secs(5))
+    .with_on_finish(|app, window_id, data| Box::pin(async move {
+        // Inspect app/window state here if public APIs expose what the test needs.
+    }))
+    .build("test_name", true);
+
+warpui::platform::app::AppBuilder::new_headless(callbacks, assets, Some(driver))
+    .run(|ctx| {
+        // create windows/views here
+    })?;
+```
+
+Current OpenWarp limitation: `crates/warp-opencode` depends on `warpui`/`warpui_core` from the workspace without enabling `test-util`, and the app does not yet provide a small public harness that creates `RootView` in a headless `AppBuilder` with asset callbacks. The current public APIs are enough for state/API/SSE tests, but not for a stable, low-boilerplate `view_snapshot_tests.rs`. Those view snapshot tests were therefore skipped for Phase 4 Workstream 3 rather than adding brittle tests coupled to upstream private platform details.

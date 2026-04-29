@@ -17,6 +17,7 @@ bytes.workspace = true
 eventsource-client.workspace = true
 futures-util.workspace = true
 reqwest.workspace = true
+ropey.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -24,6 +25,7 @@ tokio.workspace = true
 tokio-tungstenite.workspace = true
 tracing.workspace = true
 url.workspace = true
+vte.workspace = true
 
 # OpenWarp is AGPL because upstream warpui/warpui_core directly depend on
 # AGPL-licensed Warp crates. See docs/license-audit.md.

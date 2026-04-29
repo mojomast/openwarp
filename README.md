@@ -24,12 +24,14 @@ Implemented:
 - Reducer-style state store for sessions, message parts, streaming deltas, permissions, questions, providers, and PTYs.
 - WarpUI session list, chat thread, input bar, tool approval overlay, question overlay, status bar, and root layout wiring.
 - Reconnecting SSE loop wired into `main.rs`.
+- VTE-based PTY terminal grid primitives and snapshot panel rendering.
+- Rope-backed cursor-aware input draft buffer.
 - Mock-server integration tests.
 
 Still planned:
 
-- Rich terminal rendering and ANSI parsing for the PTY panel.
-- Deeper keyboard/focus polish for the first UI pass.
+- Live PTY WebSocket feeding into the rendered terminal grid.
+- Clipboard paste, IME, and deeper focus/keybinding polish for the input bar.
 - Headless or UI-level view tests if the upstream WarpUI test APIs are practical for this crate.
 
 ## Repository Layout

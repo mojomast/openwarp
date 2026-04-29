@@ -1,16 +1,17 @@
 //! Bottom composer/input bar rendering and prompt submission helpers.
 //!
 //! WarpUI does not currently expose a text-editor widget through this crate, so
-//! this module renders a composer shell and keeps a local draft string on the
-//! view.  The keyboard handler below supports only minimal printable-character,
-//! backspace, enter, and shift-enter behavior; it is intentionally small and can
-//! be replaced with a real editor when one is wired into `warp-opencode`.
+//! this module renders a composer shell and keeps a rope-backed draft buffer on
+//! the view.  The keyboard handler implements cursor-aware editing and renders a
+//! textual caret marker as a fallback until an inline composition/caret primitive
+//! is available here.
 
 use crate::api::client::{ApiClient, ApiError};
 use crate::api::schema::{
     MessageWithParts, ModelRef, PromptPartInput, SendMessageRequest, SessionStatus,
 };
 use crate::state::AppModel;
+use crate::views::draft_buffer::DraftBuffer;
 use std::collections::HashMap;
 use warpui::color::ColorU;
 use warpui::fonts::FamilyId;
@@ -29,9 +30,20 @@ const PLACEHOLDER: &str = "Ask OpenCode…";
 pub enum InputBarAction {
     Insert(String),
     Backspace,
+    Delete,
     Newline,
     Send,
     Clear,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    MoveToStart,
+    MoveToEnd,
+    DeleteWordBackward,
+    DeleteWordForward,
+    DeleteToStartOfLine,
+    DeleteToEndOfLine,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +59,7 @@ pub struct InputBarView {
     font_family: FamilyId,
     api: ApiClient,
     snapshot: AppModel,
-    draft: String,
+    draft: DraftBuffer,
     send_state: SendState,
 }
 
@@ -59,7 +71,7 @@ impl InputBarView {
             font_family,
             api,
             snapshot,
-            draft: String::new(),
+            draft: DraftBuffer::new(),
             send_state: SendState::Idle,
         }
     }
@@ -69,12 +81,12 @@ impl InputBarView {
         ctx.notify();
     }
 
-    pub fn draft(&self) -> &str {
-        &self.draft
+    pub fn draft(&self) -> String {
+        self.draft.to_string()
     }
 
     pub fn set_draft(&mut self, draft: impl Into<String>, ctx: &mut ViewContext<Self>) {
-        self.draft = draft.into();
+        self.draft = DraftBuffer::from(draft.into());
         ctx.notify();
     }
 
@@ -92,7 +104,7 @@ impl InputBarView {
         let Some(session_id) = self.snapshot.active_session_id.clone() else {
             return;
         };
-        let text = self.draft.trim().to_owned();
+        let text = self.draft.trim_text();
         let request = SendMessageRequest {
             message_id: None,
             model: self.selected_model_ref(),
@@ -122,7 +134,7 @@ impl InputBarView {
     fn can_send(&self) -> bool {
         self.is_active_session_idle()
             && self.snapshot.active_session_id.is_some()
-            && !self.draft.trim().is_empty()
+            && !self.draft.trim_text().is_empty()
             && !matches!(self.send_state, SendState::Sending)
     }
 
@@ -238,18 +250,63 @@ impl TypedActionView for InputBarView {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             InputBarAction::Insert(text) if self.is_active_session_idle() => {
-                self.draft.push_str(text);
+                self.draft.insert_str(text);
                 self.send_state = SendState::Idle;
                 ctx.notify();
             }
             InputBarAction::Backspace if self.is_active_session_idle() => {
-                self.draft.pop();
+                self.draft.delete_backward();
+                self.send_state = SendState::Idle;
+                ctx.notify();
+            }
+            InputBarAction::Delete if self.is_active_session_idle() => {
+                self.draft.delete_forward();
                 self.send_state = SendState::Idle;
                 ctx.notify();
             }
             InputBarAction::Newline if self.is_active_session_idle() => {
-                self.draft.push('\n');
+                self.draft.insert_newline();
                 self.send_state = SendState::Idle;
+                ctx.notify();
+            }
+            InputBarAction::MoveLeft if self.is_active_session_idle() => {
+                self.draft.move_cursor_left();
+                ctx.notify();
+            }
+            InputBarAction::MoveRight if self.is_active_session_idle() => {
+                self.draft.move_cursor_right();
+                ctx.notify();
+            }
+            InputBarAction::MoveUp if self.is_active_session_idle() => {
+                self.draft.move_cursor_up();
+                ctx.notify();
+            }
+            InputBarAction::MoveDown if self.is_active_session_idle() => {
+                self.draft.move_cursor_down();
+                ctx.notify();
+            }
+            InputBarAction::MoveToStart if self.is_active_session_idle() => {
+                self.draft.move_cursor_start_of_line();
+                ctx.notify();
+            }
+            InputBarAction::MoveToEnd if self.is_active_session_idle() => {
+                self.draft.move_cursor_end_of_line();
+                ctx.notify();
+            }
+            InputBarAction::DeleteWordBackward if self.is_active_session_idle() => {
+                self.draft.delete_word_backward();
+                ctx.notify();
+            }
+            InputBarAction::DeleteWordForward if self.is_active_session_idle() => {
+                self.draft.delete_word_forward();
+                ctx.notify();
+            }
+            InputBarAction::DeleteToStartOfLine if self.is_active_session_idle() => {
+                self.draft.delete_to_start_of_line();
+                ctx.notify();
+            }
+            InputBarAction::DeleteToEndOfLine if self.is_active_session_idle() => {
+                self.draft.delete_to_end_of_line();
                 ctx.notify();
             }
             InputBarAction::Send => self.send(ctx),
@@ -270,7 +327,7 @@ impl View for InputBarView {
         let draft_text = if self.draft.is_empty() {
             PLACEHOLDER.to_string()
         } else {
-            self.draft.clone()
+            self.draft.display_with_caret()
         };
         let draft_color = if disabled {
             ColorU::new(106, 110, 122, 255)
@@ -354,12 +411,43 @@ impl View for InputBarView {
         EventHandler::new(ConstrainedBox::new(content).with_min_height(104.).finish())
             .with_always_handle()
             .on_keydown(|ctx, _app, keystroke| {
-                match keystroke.key.as_str() {
+                let key = keystroke.key.as_str();
+
+                // Clipboard paste is intentionally not handled here yet. This
+                // crate does not expose an obvious WarpUI clipboard API at this
+                // layer, and adding a platform clipboard dependency would make
+                // the composer brittle across Warp targets.
+                match key {
                     "enter" if keystroke.shift => {
                         ctx.dispatch_typed_action(InputBarAction::Newline)
                     }
                     "enter" => ctx.dispatch_typed_action(InputBarAction::Send),
+                    "backspace" if keystroke.alt => {
+                        ctx.dispatch_typed_action(InputBarAction::DeleteWordBackward)
+                    }
                     "backspace" => ctx.dispatch_typed_action(InputBarAction::Backspace),
+                    "delete" | "del" if keystroke.alt => {
+                        ctx.dispatch_typed_action(InputBarAction::DeleteWordForward)
+                    }
+                    "delete" | "del" => ctx.dispatch_typed_action(InputBarAction::Delete),
+                    "left" | "arrowleft" => ctx.dispatch_typed_action(InputBarAction::MoveLeft),
+                    "right" | "arrowright" => ctx.dispatch_typed_action(InputBarAction::MoveRight),
+                    "up" | "arrowup" => ctx.dispatch_typed_action(InputBarAction::MoveUp),
+                    "down" | "arrowdown" => ctx.dispatch_typed_action(InputBarAction::MoveDown),
+                    "home" => ctx.dispatch_typed_action(InputBarAction::MoveToStart),
+                    "end" => ctx.dispatch_typed_action(InputBarAction::MoveToEnd),
+                    "a" if keystroke.ctrl && !keystroke.alt && !keystroke.cmd => {
+                        ctx.dispatch_typed_action(InputBarAction::MoveToStart)
+                    }
+                    "e" if keystroke.ctrl && !keystroke.alt && !keystroke.cmd => {
+                        ctx.dispatch_typed_action(InputBarAction::MoveToEnd)
+                    }
+                    "k" if keystroke.ctrl && !keystroke.alt && !keystroke.cmd => {
+                        ctx.dispatch_typed_action(InputBarAction::DeleteToEndOfLine)
+                    }
+                    "u" if keystroke.ctrl && !keystroke.alt && !keystroke.cmd => {
+                        ctx.dispatch_typed_action(InputBarAction::DeleteToStartOfLine)
+                    }
                     key if is_plain_printable_key(key, keystroke) => {
                         ctx.dispatch_typed_action(InputBarAction::Insert(key.to_string()))
                     }
